@@ -1,0 +1,68 @@
+name: Extract Blockverse ZIP
+
+on:
+  push:
+    paths:
+      - "*.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find ZIP file
+        id: zip
+        shell: bash
+        run: |
+          zip_file="$(find . -maxdepth 1 -type f -iname '*.zip' -printf '%f\n' | head -n 1)"
+
+          if [ -z "$zip_file" ]; then
+            echo "No ZIP file found."
+            exit 1
+          fi
+
+          echo "zip_file=$zip_file" >> "$GITHUB_OUTPUT"
+          echo "Found: $zip_file"
+
+      - name: Extract project
+        shell: bash
+        run: |
+          ZIP="${{ steps.zip.outputs.zip_file }}"
+
+          rm -rf .extract
+          mkdir -p .extract
+
+          unzip -q "$ZIP" -d .extract
+
+          if [ -d ".extract/blockverse" ]; then
+            cp -a .extract/blockverse/. .
+          else
+            echo "Expected blockverse/ folder was not found."
+            exit 1
+          fi
+
+          rm -rf .extract
+          rm -f "$ZIP"
+
+      - name: Commit extracted project
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Extract Blockverse project"
+          git push
