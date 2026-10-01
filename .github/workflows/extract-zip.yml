@@ -29,9 +29,8 @@ jobs:
           fi
 
           echo "zip_file=$zip_file" >> "$GITHUB_OUTPUT"
-          echo "Found: $zip_file"
 
-      - name: Extract project
+      - name: Extract Blockverse
         shell: bash
         run: |
           ZIP="${{ steps.zip.outputs.zip_file }}"
@@ -41,15 +40,22 @@ jobs:
 
           unzip -q "$ZIP" -d .extract
 
-          if [ -d ".extract/blockverse" ]; then
-            cp -a .extract/blockverse/. .
-          else
-            echo "Expected blockverse/ folder was not found."
+          if [ ! -d ".extract/blockverse" ]; then
+            echo "ERROR: blockverse folder not found inside ZIP."
             exit 1
           fi
 
-          rm -rf .extract
+          # Delete ZIP project workflows before copying
+          rm -rf .extract/blockverse/.github/workflows
+
+          # Copy project to repository root
+          cp -a .extract/blockverse/. .
+
+          # Delete ZIP
           rm -f "$ZIP"
+
+          # Cleanup
+          rm -rf .extract
 
       - name: Commit extracted project
         shell: bash
