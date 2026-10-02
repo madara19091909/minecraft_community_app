@@ -88,6 +88,42 @@ class PostRepository {
     }
   }
 
+  Future<List<Post>> fetchUserPosts(String userId, {int limit = 50}) async {
+    try {
+      final rows = await _client
+          .from('feed_posts')
+          .select()
+          .eq('author_id', userId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return [for (final r in rows) Post.fromMap(r)];
+    } catch (e) {
+      throw AppFailure.from(e);
+    }
+  }
+
+  Future<List<Post>> fetchLikedPosts(String userId, {int limit = 50}) async {
+    try {
+      final likes = await _client
+          .from('likes')
+          .select('post_id')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      final ids = [for (final row in likes) row['post_id'] as String];
+      if (ids.isEmpty) return const [];
+      final rows = await _client
+          .from('feed_posts')
+          .select()
+          .inFilter('id', ids)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return [for (final r in rows) Post.fromMap(r)];
+    } catch (e) {
+      throw AppFailure.from(e);
+    }
+  }
+
   Future<void> deletePost(String id) async {
     try {
       final media = await _client.from('post_media').select('storage_path').eq('post_id', id);
