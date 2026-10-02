@@ -535,7 +535,7 @@ class _BadgesTab extends StatelessWidget {
       if (profile.minecraftUsername?.isNotEmpty == true)
         _Badge('Minecraft player', Icons.sports_esports, 'Minecraft identity added'),
       if (profile.links.isNotEmpty) _Badge('Creator links', Icons.link, 'External links connected'),
-      _Badge('Blockverse member', Icons.cube_outlined, 'Profile created on Blockverse'),
+      _Badge('Blockverse member', Icons.widgets_outlined, 'Profile created on Blockverse'),
     ];
     return GridView.builder(
       padding: const EdgeInsets.all(16),
