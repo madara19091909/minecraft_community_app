@@ -43,8 +43,30 @@ jobs:
       - name: Generate Android platform files if missing
         run: |
           if [ ! -d android ]; then
-            flutter create --platforms=android --org com.blockverse --project-name blockverse .
+            flutter create \
+              --platforms=android \
+              --org com.blockverse \
+              --project-name blockverse \
+              .
           fi
+
+      - name: Ensure Android Internet permission
+        shell: bash
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "AndroidManifest.xml not found!"
+            exit 1
+          fi
+
+          if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
+            sed -i '/<manifest[^>]*>/a\
+            <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST"
+          fi
+
+          echo "Internet permission:"
+          grep -n "android.permission.INTERNET" "$MANIFEST"
 
       - name: Pub get
         run: flutter pub get
