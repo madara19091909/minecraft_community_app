@@ -14,7 +14,7 @@ class McNotificationService {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
 
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
 
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -50,10 +50,10 @@ class McNotificationService {
     final channelId = message ? 'mc_messages' : 'mc_social';
     final channelName = message ? 'MC Messages' : 'MC Social';
     await _plugin.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           channelName,
