@@ -54,18 +54,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _send() async {
     if (_sending) return;
-    final text = _input.text.trim();
+
+    // Keep emoji-only messages valid. We only reject text that contains no
+    // visible characters at all and has no attached image.
+    final raw = _input.text;
+    final text = raw.trim();
+    final hasText = text.runes.isNotEmpty;
+    final hasImage = _image != null;
+
     final ctrl = ref.read(chatControllerProvider(widget.conversationId).notifier);
     setState(() => _sending = true);
+
     try {
       final editing = _editing;
       if (editing != null) {
-        if (text.isEmpty) return;
+        if (!hasText) return;
         await ctrl.edit(editing, text);
         if (mounted) setState(() => _editing = null);
       } else {
-        if (text.isEmpty && _image == null) return;
-        await ctrl.send(content: text, image: _image, replyTo: _replyTo?.id);
+        if (!hasText && !hasImage) return;
+
+        await ctrl.send(
+          content: text,
+          image: _image,
+          replyTo: _replyTo?.id,
+        );
+
         if (mounted) {
           setState(() {
             _replyTo = null;
@@ -73,9 +87,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           });
         }
       }
+
       _input.clear();
       if (_scroll.hasClients) {
-        _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+        _scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        );
       }
     } catch (e) {
       if (mounted) showErrorSnack(context, e);
@@ -474,20 +493,13 @@ class _ChatImage extends ConsumerWidget {
   }
 }
 
-class _InputBar extends StatelessWidget {
+class _InputBar extends StatefulWidget {
   const _InputBar({
-    required this.controller,
-    required this.sending,
-    required this.replyTo,
-    required this.replyName,
-    required this.editing,
-    required this.image,
-    required this.onCancelContext,
-    required this.onRemoveImage,
-    required this.onPickImage,
-    required this.onSend,
+    required this.controller, required this.sending, required this.replyTo,
+    required this.replyName, required this.editing, required this.image,
+    required this.onCancelContext, required this.onRemoveImage,
+    required this.onPickImage, required this.onSend,
   });
-
   final TextEditingController controller;
   final bool sending;
   final Message? replyTo;
@@ -499,95 +511,174 @@ class _InputBar extends StatelessWidget {
   final VoidCallback onPickImage;
   final VoidCallback onSend;
 
+  @override State<_InputBar> createState() => _InputBarState();
+}
+
+class _InputBarState extends State<_InputBar> {
+  bool _emojiOpen = false;
+
+  static const _emojis = <String>[
+    '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😍','🥰','😘',
+    '😋','😛','😝','😜','🤪','🤨','🤓','😎','🥳','😏','😒','😞','😔','😟','😕','🙁',
+    '😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱',
+    '😨','😰','😥','😓','🤗','🤔','🫡','🤭','🤫','😶','😐','😑','😬','🙄','😮','😴',
+    '🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤠','🤑','🤡','👻','💀','👽','🤖',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','🔥','✨','⭐','🌟','💫','💥',
+    '💯','🎉','🎊','🏆','👑','💎','⚡','🎮','🕹️','⛏️','🧱','🗡️','🛡️','🏹','👍','👎',
+    '👏','🙌','🤝','🙏','💪','👀','👋','✌️','❤️‍🔥','🤣','😭','💀','🗿','🐸','🐱','🐶',
+  ];
+
+  void _insertEmoji(String emoji) {
+    final v = widget.controller.value;
+    final s = v.selection.start < 0 ? v.text.length : v.selection.start;
+    final e = v.selection.end < 0 ? v.text.length : v.selection.end;
+    final next = v.text.replaceRange(s, e, emoji);
+    widget.controller.value = v.copyWith(
+      text: next,
+      selection: TextSelection.collapsed(offset: s + emoji.length),
+      composing: TextRange.empty,
+    );
+    setState(() {});
+  }
+
+  void _toggleEmoji() {
+    FocusScope.of(context).unfocus();
+    setState(() => _emojiOpen = !_emojiOpen);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final banner = editing
+    final cs = t.colorScheme;
+    final hasText = widget.controller.text.trim().runes.isNotEmpty;
+    final canSend = !widget.sending && (hasText || widget.image != null);
+    final banner = widget.editing
         ? 'Editing message'
-        : replyTo != null
-            ? 'Replying to $replyName'
-            : null;
+        : widget.replyTo != null ? 'Replying to ${widget.replyName ?? 'message'}' : null;
 
     return Material(
-      color: t.colorScheme.surface,
+      color: cs.surface,
       child: SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (banner != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 4, 0),
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest.withValues(alpha: .72),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Row(children: [
-                Icon(editing ? Icons.edit : Icons.reply, size: 16, color: t.colorScheme.primary),
+                Icon(widget.editing ? Icons.edit_rounded : Icons.reply_rounded, size: 17, color: cs.primary),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    replyTo != null && !editing
-                        ? '$banner: ${replyTo!.content.isEmpty ? 'Photo' : replyTo!.content}'
-                        : banner,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: t.hintColor, fontSize: 13),
-                  ),
-                ),
-                IconButton(icon: const Icon(Icons.close, size: 18), onPressed: onCancelContext),
+                Expanded(child: Text(
+                  widget.replyTo != null && !widget.editing
+                      ? '${widget.replyName ?? 'Message'}: ${widget.replyTo!.content.isEmpty ? 'Photo' : widget.replyTo!.content}'
+                      : banner,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5),
+                )),
+                IconButton(visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: widget.onCancelContext),
               ]),
             ),
-          if (image != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Stack(children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.memory(image!.bytes, height: 84, width: 84, fit: BoxFit.cover),
-                  ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: GestureDetector(
-                      onTap: onRemoveImage,
-                      child: const CircleAvatar(
-                        radius: 11,
-                        backgroundColor: Colors.black54,
-                        child: Icon(Icons.close, size: 14, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ]),
-              ),
+          if (widget.image != null)
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 0), height: 78,
+              alignment: Alignment.centerLeft,
+              child: Stack(clipBehavior: Clip.none, children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.memory(widget.image!.bytes, height: 78, width: 78, fit: BoxFit.cover),
+                ),
+                Positioned(right: -5, top: -5, child: GestureDetector(
+                  onTap: widget.onRemoveImage,
+                  child: Container(width: 23, height: 23,
+                    decoration: BoxDecoration(color: cs.error, shape: BoxShape.circle,
+                      border: Border.all(color: cs.surface, width: 2)),
+                    child: Icon(Icons.close_rounded, size: 13, color: cs.onError)),
+                )),
+              ]),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 6, 6, 8),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
             child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              if (!editing)
-                IconButton(
-                  tooltip: 'Photo',
-                  onPressed: sending ? null : onPickImage,
-                  icon: const Icon(Icons.image_outlined),
-                ),
-              if (editing) const SizedBox(width: 12),
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  minLines: 1,
-                  maxLines: 5,
-                  maxLength: 4000,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(hintText: 'Message', counterText: ''),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 52, maxHeight: 132),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(27),
+                    border: Border.all(color: cs.outlineVariant.withValues(alpha: .35)),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 16, offset: const Offset(0,5))],
+                  ),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    if (!widget.editing)
+                      IconButton(
+                        tooltip: 'Emoji', onPressed: widget.sending ? null : _toggleEmoji,
+                        icon: Icon(_emojiOpen ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
+                          color: _emojiOpen ? cs.primary : cs.onSurfaceVariant),
+                      ),
+                    Expanded(child: TextField(
+                      controller: widget.controller, minLines: 1, maxLines: 5, maxLength: 4000,
+                      onTap: () { if (_emojiOpen) setState(() => _emojiOpen = false); },
+                      onChanged: (_) => setState(() {}),
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Write a message…', counterText: '', border: InputBorder.none,
+                        enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 2),
+                      ),
+                    )),
+                    if (!widget.editing)
+                      IconButton(
+                        tooltip: 'Photo', onPressed: widget.sending ? null : widget.onPickImage,
+                        icon: Icon(Icons.attach_file_rounded, color: cs.onSurfaceVariant),
+                      ),
+                  ]),
                 ),
               ),
-              const SizedBox(width: 4),
-              IconButton.filled(
-                onPressed: sending ? null : onSend,
-                icon: sending
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                    : Icon(editing ? Icons.check : Icons.send, color: Colors.black),
+              const SizedBox(width: 7),
+              AnimatedScale(
+                scale: canSend ? 1 : .92, duration: const Duration(milliseconds: 150),
+                child: IconButton.filled(
+                  tooltip: widget.editing ? 'Save' : 'Send',
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(52,52), maximumSize: const Size(52,52),
+                    shape: const CircleBorder(),
+                    backgroundColor: canSend ? cs.primary : cs.surfaceContainerHighest,
+                    foregroundColor: canSend ? cs.onPrimary : cs.onSurfaceVariant,
+                  ),
+                  onPressed: canSend ? widget.onSend : null,
+                  icon: widget.sending
+                      ? const SizedBox(width:19,height:19,child:CircularProgressIndicator(strokeWidth:2))
+                      : Icon(widget.editing ? Icons.check_rounded : Icons.send_rounded, size:22),
+                ),
               ),
             ]),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              height: 245, width: double.infinity,
+              decoration: BoxDecoration(color: cs.surfaceContainerLow,
+                border: Border(top: BorderSide(color: cs.outlineVariant.withValues(alpha:.25)))),
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(12,10,12,12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 8, mainAxisSpacing: 5, crossAxisSpacing: 5),
+                itemCount: _emojis.length,
+                itemBuilder: (context,index) => InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _insertEmoji(_emojis[index]),
+                  child: Center(child: Text(_emojis[index], style: const TextStyle(fontSize:25))),
+                ),
+              ),
+            ),
+            crossFadeState: _emojiOpen ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds:180),
           ),
         ]),
       ),
