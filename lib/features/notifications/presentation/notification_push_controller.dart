@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/notification_service.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../data/notification_repository.dart';
+import 'notification_providers.dart';
 
 final notificationPushProvider = Provider<NotificationPushController>((ref) {
   final controller = NotificationPushController(
