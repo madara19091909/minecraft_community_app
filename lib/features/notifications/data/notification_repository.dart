@@ -23,6 +23,19 @@ class NotificationRepository {
     }
   }
 
+  Future<AppNotification?> fetchOne(String id) async {
+    try {
+      final row = await _client
+          .from('notification_details')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      return row == null ? null : AppNotification.fromMap(row);
+    } catch (e) {
+      throw AppFailure.from(e);
+    }
+  }
+
   Future<int> unreadCount() async {
     try {
       final r = await _client.rpc('unread_notification_count');
@@ -53,6 +66,26 @@ class NotificationRepository {
     } catch (e) {
       throw AppFailure.from(e);
     }
+  }
+
+  RealtimeChannel subscribePush(String name, String userId, {required Future<void> Function(String id) onInsert}) {
+    final channel = _client.channel('$name:$userId');
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'recipient_id',
+        value: userId,
+      ),
+      callback: (payload) {
+        final id = payload.newRecord['id']?.toString();
+        if (id != null && id.isNotEmpty) onInsert(id);
+      },
+    );
+    channel.subscribe();
+    return channel;
   }
 
   Future<void> removeChannel(RealtimeChannel c) async {
