@@ -48,13 +48,14 @@ class AppNotification {
       'community_added' => 'added you to $c',
       'community_approved' => 'Your request to join $c was approved',
       'role_change' => 'Your role was changed',
+      'message' => message ?? 'sent you a message',
       _ => message ?? 'Announcement',
     };
   }
 
   /// Whether the sentence starts with the actor's name.
   bool get startsWithActor =>
-      actorId != null && const {'like', 'comment', 'follow', 'community_request', 'community_added'}.contains(type);
+      actorId != null && const {'like', 'comment', 'follow', 'community_request', 'community_added', 'message'}.contains(type);
 
   AppNotification copyWith({DateTime? readAt}) => AppNotification(
         id: id,
