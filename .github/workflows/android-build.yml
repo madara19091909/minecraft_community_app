@@ -41,6 +41,7 @@ jobs:
           cache: true
 
       - name: Generate Android platform files if missing
+        shell: bash
         run: |
           if [ ! -d android ]; then
             flutter create --platforms=android --org com.blockverse --project-name blockverse .
@@ -49,53 +50,51 @@ jobs:
       - name: Configure Android notifications and desugaring
         shell: bash
         run: |
+          set -e
           MANIFEST="android/app/src/main/AndroidManifest.xml"
+
           if [ ! -f "$MANIFEST" ]; then
             echo "AndroidManifest.xml not found"
             exit 1
           fi
 
           if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
-            sed -i '/<manifest[^>]*>/a\
-            <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST"
+            sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST"
           fi
 
           if ! grep -q 'android.permission.POST_NOTIFICATIONS' "$MANIFEST"; then
-            sed -i '/<manifest[^>]*>/a\
-            <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' "$MANIFEST"
+            sed -i '/<manifest[^>]*>/a\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' "$MANIFEST"
           fi
 
           if [ -f android/app/build.gradle.kts ]; then
-            python3 - <<'PY2'
-from pathlib import Path
-p=Path("android/app/build.gradle.kts")
-s=p.read_text()
-if "isCoreLibraryDesugaringEnabled = true" not in s:
-    s=s.replace("android {", "android {\n    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }", 1)
-if "coreLibraryDesugaring("com.android.tools:desugar_jdk_libs" not in s:
-    marker="dependencies {"
-    if marker in s:
-        s=s.replace(marker, marker+"\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")", 1)
-    else:
-        s += "\ndependencies {\n    coreLibraryDesugaring(\"com.android.tools:desugar_jdk_libs:2.1.5\")\n}\n"
-p.write_text(s)
-PY2
+            FILE="android/app/build.gradle.kts"
+
+            if ! grep -q 'isCoreLibraryDesugaringEnabled = true' "$FILE"; then
+              sed -i '/^android {/a\    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }' "$FILE"
+            fi
+
+            if ! grep -q 'desugar_jdk_libs:2.1.5' "$FILE"; then
+              if grep -q '^dependencies {' "$FILE"; then
+                sed -i '/^dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")' "$FILE"
+              else
+                printf '\n\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n' >> "$FILE"
+              fi
+            fi
+
           elif [ -f android/app/build.gradle ]; then
-            python3 - <<'PY2'
-from pathlib import Path
-p=Path("android/app/build.gradle")
-s=p.read_text()
-if "coreLibraryDesugaringEnabled true" not in s:
-    s=s.replace("android {", "android {\n    compileOptions {\n        coreLibraryDesugaringEnabled true\n    }", 1)
-if "coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs" not in s:
-    marker="dependencies {"
-    dep="    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'\n"
-    if marker in s:
-        s=s.replace(marker, marker+dep, 1)
-    else:
-        s += "\ndependencies {\n"+dep+"}\n"
-p.write_text(s)
-PY2
+            FILE="android/app/build.gradle"
+
+            if ! grep -q 'coreLibraryDesugaringEnabled true' "$FILE"; then
+              sed -i '/^android {/a\    compileOptions {\n        coreLibraryDesugaringEnabled true\n    }' "$FILE"
+            fi
+
+            if ! grep -q 'desugar_jdk_libs:2.1.5' "$FILE"; then
+              if grep -q '^dependencies {' "$FILE"; then
+                sed -i "/^dependencies {/a\    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'" "$FILE"
+              else
+                printf "\n\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'\n}\n" >> "$FILE"
+              fi
+            fi
           fi
 
       - name: Pub get
