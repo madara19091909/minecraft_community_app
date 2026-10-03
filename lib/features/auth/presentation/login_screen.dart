@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -47,9 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _password.text,
           );
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = AppFailure.from(e).message);
-      }
+      if (mounted) setState(() => _error = AppFailure.from(e).message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -96,235 +96,158 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _errorBox() {
-    final error = _error;
-    if (error == null) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: const Color(0x26F0444A),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x66F0444A)),
-      ),
-      child: Text(
-        error,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Color(0xFFFF8A8E),
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final height = media.size.height;
+    final keyboard = media.viewInsets.bottom;
+    final keyboardOpen = keyboard > 0;
+    final headerHeight = math.min(math.max(height * 0.40, 330.0), 500.0);
+    final shift = keyboardOpen ? math.min(keyboard * 0.48, 390.0) : 0.0;
+
     return Scaffold(
       backgroundColor: _background,
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final height = constraints.maxHeight;
-            final imageHeight = (height * 0.55).clamp(420.0, 680.0);
-
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: imageHeight,
-                  child: Image.asset(
-                    'assets/login_background.jpg',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                  ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // The exact user-provided image, filling the hero area.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: headerHeight + 80,
+            child: Image.asset(
+              'assets/login_background.jpg',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: headerHeight + 120,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.50, 1.0],
+                  colors: [
+                    Color(0x18000000),
+                    Color(0x50000000),
+                    Color(0xFF050505),
+                  ],
                 ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: imageHeight + 70,
-                  child: const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: [0.0, 0.48, 0.82, 1.0],
-                        colors: [
-                          Color(0x14000000),
-                          Color(0x26000000),
-                          Color(0xB8050505),
-                          Color(0xFF050505),
-                        ],
-                      ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              transform: Matrix4.translationValues(0, -shift, 0),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: headerHeight * 0.63),
+                  Text(
+                    'Welcome back',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 36,
+                      height: 1.05,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      shadows: const [
+                        Shadow(blurRadius: 16, color: Colors.black87, offset: Offset(0, 3)),
+                      ],
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      widthFactor: 1,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Welcome back',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.spaceGrotesk(
-                              color: Colors.white,
-                              fontSize: 36,
-                              height: 1.05,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.8,
-                              shadows: const [
-                                Shadow(
-                                  blurRadius: 16,
-                                  color: Colors.black87,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Text(
-                            'mcc  •  Minecraft Community',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.spaceGrotesk(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                          const SizedBox(height: 38),
-                          Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                TextFormField(
-                                  controller: _email,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  autofillHints: const [AutofillHints.email],
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: _inputDecoration(
-                                    hint: 'Email address',
-                                    icon: Icons.mail_outline_rounded,
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || !value.contains('@')) {
-                                      return 'Enter a valid email address';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-                                TextFormField(
-                                  controller: _password,
-                                  obscureText: _obscure,
-                                  textInputAction: TextInputAction.done,
-                                  autofillHints: const [AutofillHints.password],
-                                  onFieldSubmitted: (_) => _submit(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: _inputDecoration(
-                                    hint: 'Password',
-                                    icon: Icons.lock_outline_rounded,
-                                    suffix: IconButton(
-                                      tooltip: _obscure
-                                          ? 'Show password'
-                                          : 'Hide password',
-                                      icon: Icon(
-                                        _obscure
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                        color: const Color(0xFF8E8E8E),
-                                      ),
-                                      onPressed: () {
-                                        setState(() => _obscure = !_obscure);
-                                      },
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.length < 6) {
-                                      return 'Password must be at least 6 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                _errorBox(),
-                                const SizedBox(height: 24),
-                                SizedBox(
-                                  height: 58,
-                                  child: ElevatedButton(
-                                    onPressed: _busy ? null : _submit,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _accent,
-                                      disabledBackgroundColor:
-                                          _accent.withOpacity(0.55),
-                                      foregroundColor: Colors.white,
-                                      elevation: 8,
-                                      shadowColor: _accent.withOpacity(0.28),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                    ),
-                                    child: _busy
-                                        ? const SizedBox(
-                                            width: 23,
-                                            height: 23,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.4,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : Text(
-                                            'Sign in',
-                                            style: GoogleFonts.spaceGrotesk(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                Text(
-                                  'Use your approved mcc account to continue.',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.spaceGrotesk(
-                                    color: const Color(0xFF777777),
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'mcc  •  Minecraft Community',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
                     ),
                   ),
-                ),
-              ],
-            );
-          },
-        ),
+                  const SizedBox(height: 36),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                          decoration: _inputDecoration(hint: 'Email address', icon: Icons.mail_outline_rounded),
+                          validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email address' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: _obscure,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onFieldSubmitted: (_) => _submit(),
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                          decoration: _inputDecoration(
+                            hint: 'Password',
+                            icon: Icons.lock_outline_rounded,
+                            suffix: IconButton(
+                              tooltip: _obscure ? 'Show password' : 'Hide password',
+                              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF8E8E8E)),
+                              onPressed: () => setState(() => _obscure = !_obscure),
+                            ),
+                          ),
+                          validator: (value) => (value == null || value.length < 6) ? 'Password must be at least 6 characters' : null,
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFFF8A8E), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        ],
+                        const SizedBox(height: 22),
+                        SizedBox(
+                          height: 58,
+                          child: ElevatedButton(
+                            onPressed: _busy ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _accent,
+                              disabledBackgroundColor: _accent.withOpacity(0.55),
+                              foregroundColor: Colors.white,
+                              elevation: 8,
+                              shadowColor: _accent.withOpacity(0.28),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            ),
+                            child: _busy
+                                ? const SizedBox(width: 23, height: 23, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+                                : Text('Sign in', style: GoogleFonts.spaceGrotesk(fontSize: 17, fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Use your approved mcc account to continue.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.spaceGrotesk(color: const Color(0xFF777777), fontSize: 12.5, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
