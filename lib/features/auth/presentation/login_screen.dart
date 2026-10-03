@@ -7,6 +7,7 @@ import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -15,9 +16,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+
   bool _busy = false;
   bool _obscure = true;
   String? _error;
+
+  static const _background = Color(0xFF050505);
+  static const _field = Color(0xFF151515);
+  static const _accent = Color(0xFFF0444A);
 
   @override
   void dispose() {
@@ -27,95 +33,298 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _busy = true;
       _error = null;
     });
+
     try {
-      await ref.read(authControllerProvider).signIn(_email.text, _password.text);
+      await ref.read(authControllerProvider).signIn(
+            _email.text,
+            _password.text,
+          );
     } catch (e) {
-      if (mounted) setState(() => _error = AppFailure.from(e).message);
+      if (mounted) {
+        setState(() => _error = AppFailure.from(e).message);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: Color(0xFF8E8E8E),
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+      prefixIcon: Icon(icon, color: const Color(0xFF9A9A9A), size: 24),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: _field,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 19),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: _accent, width: 1.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Color(0xFFE04B50)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Color(0xFFE04B50), width: 1.4),
+      ),
+      errorStyle: const TextStyle(height: 1.15),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(Icons.grid_view_rounded, size: 56, color: t.colorScheme.primary),
-                    const SizedBox(height: 16),
-                    Text('Blockverse',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.spaceGrotesk(
-                            fontSize: 34, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text('Members only. Sign in with your approved account.',
-                        textAlign: TextAlign.center,
-                        style: t.textTheme.bodyMedium?.copyWith(color: t.hintColor)),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                          labelText: 'Email', prefixIcon: Icon(Icons.mail_outline)),
-                      validator: (v) =>
-                          (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: _obscure,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      validator: (v) =>
-                          (v == null || v.length < 6) ? 'At least 6 characters' : null,
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 14),
-                      Text(_error!,
-                          style: TextStyle(color: t.colorScheme.error),
-                          textAlign: TextAlign.center),
-                    ],
-                    const SizedBox(height: 22),
-                    FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: _busy
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.5))
-                          : const Text('Sign in'),
-                    ),
-                  ],
+      backgroundColor: _background,
+      resizeToAvoidBottomInset: true,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight;
+          final headerHeight = (height * 0.38).clamp(300.0, 410.0);
+
+          return Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: headerHeight + 80,
+                child: Image.asset(
+                  'assets/login_background.jpg',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 ),
               ),
-            ),
-          ),
-        ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: headerHeight + 110,
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0.0, 0.52, 1.0],
+                      colors: [
+                        Color(0x22000000),
+                        Color(0x66000000),
+                        Color(0xFF050505),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: height - 30),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: headerHeight * 0.64),
+                        Text(
+                          'Welcome back',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white,
+                            fontSize: 36,
+                            height: 1.05,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                            shadows: const [
+                              Shadow(
+                                blurRadius: 16,
+                                color: Colors.black87,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          'mcc  •  Minecraft Community',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 42),
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: _email,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.email],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: _inputDecoration(
+                                  hint: 'Email address',
+                                  icon: Icons.mail_outline_rounded,
+                                ),
+                                validator: (value) =>
+                                    (value == null || !value.contains('@'))
+                                        ? 'Enter a valid email address'
+                                        : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _password,
+                                obscureText: _obscure,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [AutofillHints.password],
+                                onFieldSubmitted: (_) => _submit(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: _inputDecoration(
+                                  hint: 'Password',
+                                  icon: Icons.lock_outline_rounded,
+                                  suffix: IconButton(
+                                    tooltip: _obscure
+                                        ? 'Show password'
+                                        : 'Hide password',
+                                    icon: Icon(
+                                      _obscure
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      color: const Color(0xFF8E8E8E),
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _obscure = !_obscure,
+                                    ),
+                                  ),
+                                ),
+                                validator: (value) =>
+                                    (value == null || value.length < 6)
+                                        ? 'Password must be at least 6 characters'
+                                        : null,
+                              ),
+                              if (_error != null) ...[
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 11,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0x26F0444A),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: const Color(0x66F0444A),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _error!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Color(0xFFFF8A8E),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                height: 58,
+                                child: ElevatedButton(
+                                  onPressed: _busy ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _accent,
+                                    disabledBackgroundColor:
+                                        _accent.withOpacity(0.55),
+                                    foregroundColor: Colors.white,
+                                    elevation: 8,
+                                    shadowColor: _accent.withOpacity(0.28),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 180),
+                                    child: _busy
+                                        ? const SizedBox(
+                                            key: ValueKey('loading'),
+                                            width: 23,
+                                            height: 23,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.4,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            'Sign in',
+                                            key: const ValueKey('sign-in'),
+                                            style: GoogleFonts.spaceGrotesk(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              Text(
+                                'Use your approved mcc account to continue.',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: const Color(0xFF777777),
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
