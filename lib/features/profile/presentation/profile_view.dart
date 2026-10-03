@@ -103,7 +103,7 @@ class _HeroHeader extends StatelessWidget {
     final bg = Theme.of(context).scaffoldBackgroundColor;
     final roleColor = _roleColor(profile.roleKey);
     return SizedBox(
-      height: 238,
+      height: 252,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -152,7 +152,7 @@ class _HeroHeader extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: roleColor, width: 2.5)),
-                child: UserAvatar(url: profile.avatarUrl, radius: 52),
+                child: UserAvatar(url: profile.avatarUrl, radius: 56),
               ),
             ),
           ),
@@ -263,9 +263,11 @@ class _Identity extends StatelessWidget {
               FollowButton(profile: profile),
             ]),
         ]),
+        const SizedBox(height: 10),
+        _ProfileActions(profile: profile),
         if (profile.bio?.trim().isNotEmpty == true) ...[
-          const SizedBox(height: 12),
-          Text(profile.bio!, style: const TextStyle(height: 1.42, fontSize: 14.5)),
+          const SizedBox(height: 14),
+          Text(profile.bio!, style: const TextStyle(height: 1.48, fontSize: 14.5)),
         ],
         const SizedBox(height: 14),
         _QuickFacts(profile: profile),
@@ -273,8 +275,12 @@ class _Identity extends StatelessWidget {
         _Stats(profile: profile),
         const SizedBox(height: 14),
         _MinecraftCard(profile: profile),
+        const SizedBox(height: 12),
+        _ProfileStrength(profile: profile),
         if (profile.links.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          Text('Connected', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
           _Links(profile: profile),
         ],
         const SizedBox(height: 12),
@@ -288,6 +294,115 @@ class _Identity extends StatelessWidget {
   }
 }
 
+class _ProfileActions extends StatelessWidget {
+  const _ProfileActions({required this.profile});
+  final ProfileDetails profile;
+
+  Future<void> _copyProfile(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: '@${profile.username}'));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Username copied')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _copyProfile(context),
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: const Text('Copy username'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: '@${profile.username}'));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Profile ready to share')),
+              );
+            },
+            icon: const Icon(Icons.share_outlined, size: 18),
+            label: const Text('Copy profile'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileStrength extends StatelessWidget {
+  const _ProfileStrength({required this.profile});
+  final ProfileDetails profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final checks = <bool>[
+      profile.avatarUrl?.trim().isNotEmpty == true,
+      profile.bannerUrl?.trim().isNotEmpty == true,
+      profile.bio?.trim().isNotEmpty == true,
+      profile.minecraftUsername?.trim().isNotEmpty == true,
+      profile.links.isNotEmpty,
+    ];
+    final done = checks.where((v) => v).length;
+    final value = done / checks.length;
+    final label = done == checks.length
+        ? 'Profile complete'
+        : done >= 3
+            ? 'Strong profile'
+            : 'Complete your profile';
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: .42),
+        border: Border.all(color: primary.withValues(alpha: .15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: primary.withValues(alpha: .12),
+                ),
+                child: Icon(Icons.auto_awesome_rounded, size: 19, color: primary),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+                    Text('$done/${checks.length} profile details added', style: TextStyle(fontSize: 11.5, color: Theme.of(context).hintColor)),
+                  ],
+                ),
+              ),
+              Text('${(value * 100).round()}%', style: TextStyle(fontWeight: FontWeight.w900, color: primary)),
+            ],
+          ),
+          const SizedBox(height: 11),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(minHeight: 7, value: value),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _QuickFacts extends StatelessWidget {
   const _QuickFacts({required this.profile});
   final ProfileDetails profile;
@@ -297,6 +412,7 @@ class _QuickFacts extends StatelessWidget {
       if (profile.roleKey != 'member') profile.roleName,
       if (profile.minecraftUsername?.trim().isNotEmpty == true) 'Minecraft player',
       if (profile.links.isNotEmpty) '${profile.links.length} links',
+      if ((profile.bio ?? '').trim().isNotEmpty) 'Bio added',
     ];
     if (facts.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 7, runSpacing: 7, children: [
@@ -318,20 +434,45 @@ class _Stats extends StatelessWidget {
   final ProfileDetails profile;
 
   @override
-  Widget build(BuildContext context) => Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _Stat(value: profile.followersCount, label: 'Followers', icon: Icons.people_alt_outlined),
-              _Stat(value: profile.followingCount, label: 'Following', icon: Icons.person_add_alt_1_outlined),
-              _Stat(value: profile.roleKey == 'member' ? 0 : 1, label: 'Badges', icon: Icons.workspace_premium_outlined),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) {
+    final badgeCount = _badgeCount(profile);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: .55),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: .35)),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _Stat(value: profile.followersCount, label: 'Followers', icon: Icons.people_alt_outlined)),
+          _StatDivider(),
+          Expanded(child: _Stat(value: profile.followingCount, label: 'Following', icon: Icons.person_add_alt_1_outlined)),
+          _StatDivider(),
+          Expanded(child: _Stat(value: badgeCount, label: 'Badges', icon: Icons.workspace_premium_outlined)),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 38,
+        width: 1,
+        color: Theme.of(context).dividerColor.withValues(alpha: .4),
       );
+}
+
+int _badgeCount(ProfileDetails p) {
+  var count = 1;
+  if (p.roleKey != 'member') count++;
+  if ((p.minecraftUsername ?? '').trim().isNotEmpty) count++;
+  if (p.links.isNotEmpty) count++;
+  if ((p.bio ?? '').trim().isNotEmpty) count++;
+  if (p.followersCount >= 10) count++;
+  return count;
 }
 
 class _MinecraftCard extends StatelessWidget {
@@ -361,7 +502,14 @@ class _MinecraftCard extends StatelessWidget {
           if (profile.editionLabel.isNotEmpty)
             Text(profile.editionLabel, style: TextStyle(color: t.hintColor, fontSize: 12)),
         ])),
-        const Icon(Icons.chevron_right),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(99),
+            color: t.colorScheme.primary.withValues(alpha: .10),
+          ),
+          child: const Icon(Icons.check_rounded, size: 17),
+        ),
       ]),
     );
   }
@@ -400,7 +548,7 @@ class _ProfileTabs extends ConsumerWidget {
           ],
         ),
         SizedBox(
-          height: 520,
+          height: 560,
           child: TabBarView(
             controller: controller,
             children: [
@@ -423,6 +571,10 @@ class _AboutTab extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
         children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text('About this player', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          ),
           if (profile.minecraftUsername?.trim().isNotEmpty == true)
             _InfoTile(icon: Icons.sports_esports_outlined, title: 'Minecraft identity', subtitle: '${profile.minecraftUsername}${profile.editionLabel.isNotEmpty ? ' • ${profile.editionLabel}' : ''}'),
           _InfoTile(icon: Icons.shield_outlined, title: 'Blockverse role', subtitle: '${profile.roleName} • rank and permissions are managed by the Blockverse team.'),
@@ -528,31 +680,85 @@ class _ProfilePost extends ConsumerWidget {
 class _BadgesTab extends StatelessWidget {
   const _BadgesTab({required this.profile});
   final ProfileDetails profile;
+
   @override
   Widget build(BuildContext context) {
     final badges = <_Badge>[
-      if (profile.roleKey != 'member') _Badge('Verified role', Icons.verified, 'Official Blockverse role'),
-      if (profile.minecraftUsername?.isNotEmpty == true)
-        _Badge('Minecraft player', Icons.sports_esports, 'Minecraft identity added'),
-      if (profile.links.isNotEmpty) _Badge('Creator links', Icons.link, 'External links connected'),
-      _Badge('Blockverse member', Icons.widgets_outlined, 'Profile created on Blockverse'),
+      _Badge('Blockverse member', Icons.widgets_outlined, 'Profile created on Blockverse', true),
+      if (profile.roleKey != 'member')
+        _Badge('Verified role', Icons.verified_rounded, profile.roleName, true),
+      if ((profile.minecraftUsername ?? '').trim().isNotEmpty)
+        _Badge('Minecraft player', Icons.sports_esports_rounded, 'Minecraft identity connected', true),
+      if (profile.links.isNotEmpty)
+        _Badge('Creator links', Icons.link_rounded, '${profile.links.length} connected link${profile.links.length == 1 ? '' : 's'}', true),
+      if ((profile.bio ?? '').trim().isNotEmpty)
+        _Badge('Profile story', Icons.auto_awesome_rounded, 'Bio added', true),
+      if (profile.followersCount >= 10)
+        _Badge('Community', Icons.groups_rounded, '10+ followers', true),
     ];
+
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       itemCount: badges.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.18,
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: .98,
       ),
-      itemBuilder: (_, i) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(badges[i].icon, size: 34, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 8),
-            Text(badges[i].title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(badges[i].subtitle, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor, fontSize: 11)),
-          ]),
+      itemBuilder: (_, i) => _BadgeCard(badge: badges[i]),
+    );
+  }
+}
+
+class _BadgeCard extends StatelessWidget {
+  const _BadgeCard({required this.badge});
+  final _Badge badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primary.withValues(alpha: .14),
+            Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: .45),
+          ],
+        ),
+        border: Border.all(color: primary.withValues(alpha: .18)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 56,
+              width: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primary.withValues(alpha: .12),
+                border: Border.all(color: primary.withValues(alpha: .25)),
+              ),
+              child: Icon(badge.icon, size: 29, color: primary),
+            ),
+            const SizedBox(height: 10),
+            Text(badge.title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 5),
+            Text(
+              badge.subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).hintColor, fontSize: 11.5, height: 1.25),
+            ),
+            const SizedBox(height: 7),
+            const Icon(Icons.check_circle_rounded, size: 16),
+          ],
         ),
       ),
     );
@@ -560,10 +766,11 @@ class _BadgesTab extends StatelessWidget {
 }
 
 class _Badge {
-  const _Badge(this.title, this.icon, this.subtitle);
+  const _Badge(this.title, this.icon, this.subtitle, this.unlocked);
   final String title;
   final IconData icon;
   final String subtitle;
+  final bool unlocked;
 }
 
 class _RoleBadge extends StatelessWidget {
@@ -590,6 +797,8 @@ Color _roleColor(String key) => switch (key) {
   'owner' => AppColors.gold,
   'admin' => AppColors.redstone,
   'moderator' => AppColors.diamond,
+  'developer' => Colors.deepPurpleAccent,
+  'staff' => Colors.orangeAccent,
   'creator' => AppColors.grass,
   _ => Colors.white,
 };
