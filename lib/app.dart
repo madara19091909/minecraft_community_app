@@ -14,7 +14,7 @@ class BlockverseApp extends ConsumerWidget {
     ref.watch(notificationPushProvider);
     final look = ref.watch(appearanceProvider);
     return MaterialApp.router(
-      title: 'Blockverse',
+      title: 'mcc',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(look.accent),
       darkTheme: AppTheme.dark(look.accent),
