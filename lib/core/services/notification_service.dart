@@ -11,7 +11,7 @@ class McNotificationService {
   Future<void> initialize() async {
     if (_ready) return;
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('@drawable/mcc_icon');
     const settings = InitializationSettings(android: android);
 
     await _plugin.initialize(settings: settings);
@@ -23,16 +23,16 @@ class McNotificationService {
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
         'mc_messages',
-        'MC Messages',
-        description: 'New messages and important MC activity.',
+        'mcc Messages',
+        description: 'New messages and important mcc activity.',
         importance: Importance.max,
       ),
     );
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
         'mc_social',
-        'MC Social',
-        description: 'Likes, follows, comments and other activity.',
+        'mcc Social',
+        description: 'Likes, follows, comments and other mcc activity.',
         importance: Importance.high,
       ),
     );
@@ -48,7 +48,7 @@ class McNotificationService {
   }) async {
     await initialize();
     final channelId = message ? 'mc_messages' : 'mc_social';
-    final channelName = message ? 'MC Messages' : 'MC Social';
+    final channelName = message ? 'mcc Messages' : 'mcc Social';
     await _plugin.show(
       id: id,
       title: title,
@@ -58,8 +58,8 @@ class McNotificationService {
           channelId,
           channelName,
           channelDescription: message
-              ? 'New messages and important MC activity.'
-              : 'Likes, follows, comments and other activity.',
+              ? 'New messages and important mcc activity.'
+              : 'Likes, follows, comments and other mcc activity.',
           importance: message ? Importance.max : Importance.high,
           priority: message ? Priority.max : Priority.high,
           playSound: true,
