@@ -43,13 +43,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authControllerProvider).signIn(
-            _email.text,
+            _email.text.trim(),
             _password.text,
           );
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = AppFailure.from(e).message);
-      }
+      if (mounted) setState(() => _error = AppFailure.from(e).message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -100,19 +98,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-      resizeToAvoidBottomInset: true,
+      // Keep the page itself stationary. The keyboard is handled by Flutter
+      // without turning the whole login page into a scroll view.
+      resizeToAvoidBottomInset: false,
       body: LayoutBuilder(
         builder: (context, constraints) {
+          final width = constraints.maxWidth;
           final height = constraints.maxHeight;
-          final headerHeight = (height * 0.38).clamp(300.0, 410.0);
+          final compact = height < 700;
+          final horizontal = width < 390 ? 20.0 : 28.0;
+          final heroHeight = compact ? 330.0 : 430.0;
+          final topSpace = compact ? 155.0 : 245.0;
+          final titleSize = width < 360 ? 31.0 : 36.0;
 
           return Stack(
+            fit: StackFit.expand,
             children: [
+              // Real Minecraft artwork supplied for the login page.
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                height: headerHeight + 80,
+                height: heroHeight,
                 child: Image.asset(
                   'assets/login_background.jpg',
                   fit: BoxFit.cover,
@@ -123,39 +130,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: headerHeight + 110,
-                child: const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: [0.0, 0.52, 1.0],
-                      colors: [
-                        Color(0x22000000),
-                        Color(0x66000000),
-                        Color(0xFF050505),
-                      ],
+                height: heroHeight + 90,
+                child: const IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0.0, 0.42, 0.78, 1.0],
+                        colors: [
+                          Color(0x18000000),
+                          Color(0x30000000),
+                          Color(0xB0000000),
+                          Color(0xFF050505),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
               SafeArea(
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: height - 30),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(horizontal, 0, horizontal, 20),
+                  child: Align(
+                    alignment: Alignment.topCenter,
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SizedBox(height: headerHeight * 0.64),
+                        SizedBox(height: topSpace),
                         Text(
                           'Welcome back',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.spaceGrotesk(
                             color: Colors.white,
-                            fontSize: 36,
+                            fontSize: titleSize,
                             height: 1.05,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
@@ -179,7 +188,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             letterSpacing: 0.4,
                           ),
                         ),
-                        const SizedBox(height: 42),
+                        const SizedBox(height: 34),
                         Form(
                           key: _formKey,
                           child: Column(
@@ -316,7 +325,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
