@@ -43,11 +43,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authControllerProvider).signIn(
-            _email.text.trim(),
+            _email.text,
             _password.text,
           );
     } catch (e) {
-      if (mounted) setState(() => _error = AppFailure.from(e).message);
+      if (mounted) {
+        setState(() => _error = AppFailure.from(e).message);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -98,50 +100,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-      // Keep the page itself stationary. The keyboard is handled by Flutter
-      // without turning the whole login page into a scroll view.
       resizeToAvoidBottomInset: false,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final width = constraints.maxWidth;
           final height = constraints.maxHeight;
-          final compact = height < 700;
-          final horizontal = width < 390 ? 20.0 : 28.0;
-          final heroHeight = compact ? 330.0 : 430.0;
-          final topSpace = compact ? 155.0 : 245.0;
-          final titleSize = width < 360 ? 31.0 : 36.0;
+          final headerHeight = (height * 0.38).clamp(300.0, 410.0);
 
           return Stack(
-            fit: StackFit.expand,
             children: [
-              // Real Minecraft artwork supplied for the login page.
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: heroHeight,
+              Positioned.fill(
                 child: Image.asset(
                   'assets/login_background.jpg',
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
                 ),
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: heroHeight + 90,
-                child: const IgnorePointer(
+              Positioned.fill(
+                child: IgnorePointer(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        stops: [0.0, 0.42, 0.78, 1.0],
-                        colors: [
+                        stops: const [0.0, 0.30, 0.50, 0.70, 1.0],
+                        colors: const [
+                          Color(0x14000000),
                           Color(0x18000000),
-                          Color(0x30000000),
-                          Color(0xB0000000),
+                          Color(0x50000000),
+                          Color(0xD9050505),
                           Color(0xFF050505),
                         ],
                       ),
@@ -151,20 +137,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               SafeArea(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 0, horizontal, 20),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SizedBox(height: topSpace),
+                        SizedBox(height: (height * 0.30).clamp(250.0, 390.0)),
                         Text(
                           'Welcome back',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.spaceGrotesk(
                             color: Colors.white,
-                            fontSize: titleSize,
+                            fontSize: 36,
                             height: 1.05,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
@@ -188,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             letterSpacing: 0.4,
                           ),
                         ),
-                        const SizedBox(height: 34),
+                        const SizedBox(height: 42),
                         Form(
                           key: _formKey,
                           child: Column(
@@ -325,6 +308,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
