@@ -1,7 +1,7 @@
 name: blockverse
 description: Private social platform for the Minecraft community.
 publish_to: none
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -19,7 +19,6 @@ dependencies:
   shared_preferences: ^2.3.2
   package_info_plus: ^8.0.2
   flutter_local_notifications: ^22.3.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
