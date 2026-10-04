@@ -105,18 +105,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final headerHeight = math.min(math.max(height * 0.40, 330.0), 500.0);
     final shift = keyboardOpen ? math.min(keyboard * 0.48, 390.0) : 0.0;
 
+    // The image now continues underneath the whole fade area, so there is no
+    // hard horizontal edge where the picture ends.
+    final heroHeight = headerHeight + 230;
+
     return Scaffold(
       backgroundColor: _background,
       resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // The exact user-provided image, filling the hero area.
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: headerHeight + 80,
+            height: heroHeight,
             child: Image.asset(
               'assets/login_background.jpg',
               fit: BoxFit.cover,
@@ -127,16 +130,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             top: 0,
             left: 0,
             right: 0,
-            height: headerHeight + 120,
+            height: heroHeight,
             child: const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0.0, 0.50, 1.0],
+                  stops: [0.0, 0.38, 0.62, 0.80, 1.0],
                   colors: [
+                    Color(0x08000000),
                     Color(0x18000000),
-                    Color(0x50000000),
+                    Color(0x42000000),
+                    Color(0xB8050505),
                     Color(0xFF050505),
                   ],
                 ),
